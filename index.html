@@ -504,7 +504,7 @@ window.IntakeStore = (() => {
   function schedule() { clearTimeout(t); t = setTimeout(sync, 1500); }
   const api = (cfg, path, opts = {}) => fetch(`https://api.github.com/repos/${encodeURIComponent(cfg.owner)}/${encodeURIComponent(cfg.repo)}/${path}`, {
     ...opts, cache: "no-store",
-    headers: { Authorization: `Bearer ${cfg.token}`, Accept: "application/vnd.github+json", "X-GitHub-Api-Version": "2022-11-28", ...(opts.headers || {}) },
+    headers: { Authorization: `Bearer ${cfg.token}`, Accept: "application/vnd.github+json", ...(opts.headers || {}) },
   });
   const b64enc = (str) => { const b = new TextEncoder().encode(str); let s = ""; for (let i = 0; i < b.length; i += 0x8000) s += String.fromCharCode.apply(null, b.subarray(i, i + 0x8000)); return btoa(s); };
   const b64dec = (x) => { const s = atob(String(x).replace(/\s/g, "")); const b = new Uint8Array(s.length); for (let i = 0; i < s.length; i++) b[i] = s.charCodeAt(i); return new TextDecoder().decode(b); };
@@ -553,7 +553,8 @@ window.IntakeStore = (() => {
       if (!done) throw new Error("Another device kept saving at the same time. Try Sync now");
       lastSync = Date.now(); persist(); setStatus("synced");
     } catch (e) {
-      setStatus("error", (e && e.message) || "Sync failed");
+      const m = (e && e.message) || "Sync failed";
+      setStatus("error", /failed to fetch|networkerror|load failed/i.test(m) ? "Couldn't reach GitHub from this network or browser" : m);
     } finally {
       syncing = false;
       if (again) { again = false; schedule(); }
